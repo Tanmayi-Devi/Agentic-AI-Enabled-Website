@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Smart Task Planner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Smart Task Planner</h1>
+        <p class="subtitle">Enter a goal, and Gemini will generate a step-by-step roadmap securely via Node.js.</p>
+        
+        <div class="input-section">
+            <input type="text" id="goal-input" placeholder="e.g., Plan a 3-day weekend trip to Paris, Build a portfolio website...">
+            <button id="generate-btn">Generate Plan</button>
+        </div>
+
+        <!-- Optional Loading State UI Element -->
+        <div id="loader" class="loader hidden">
+            <div class="spinner"></div>
+            <p>Consulting Gemini AI... breaking down your roadmap...</p>
+        </div>
+
+        <!-- Error Container block -->
+        <div id="error-message" class="error-box hidden"></div>
+
+        <!-- Output Dynamic Grid layout -->
+        <div id="planner-output" class="planner-grid"></div>
+    </div>
+
+    <script>
+        const generateBtn = document.getElementById("generate-btn");
+        const goalInput = document.getElementById("goal-input");
+        const loader = document.getElementById("loader");
+        const errorBox = document.getElementById("error-message");
+        const outputGrid = document.getElementById("planner-output");
+
+        generateBtn.addEventListener("click", async () => {
+            const goal = goalInput.value.trim();
+            if (!goal) {
+                alert("Please input a goal or milestone statement first!");
+                return;
+            }
+
+            // Clear current grid views and display the loader
+            errorBox.classList.add("hidden");
+            outputGrid.innerHTML = "";
+            loader.classList.remove("hidden");
+
+            try {
+                const res = await fetch("/api/plan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ goal })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Failed to generate roadmap content.");
+
+                // Safely render elements dynamically into layouts using innerHTML loops
+                outputGrid.innerHTML = data.tasks.map((task, index) => `
+                    <div class="task-card">
+                        <div class="task-info">
+                            <h3>${index + 1}. ${escapeHTML(task.task_name)}</h3>
+                            <div class="meta-tags">
+                                <span class="tag priority-${task.priority.toLowerCase()}">${task.priority}</span>
+                                <span class="tag time-tag">⏱️ ${escapeHTML(task.estimated_time)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join("");
+
+            } catch (err) {
+                errorBox.textContent = `⚠️ Error mapping tasks: ${err.message}`;
+                errorBox.classList.remove("hidden");
+            } finally {
+                loader.classList.add("hidden");
+            }
+        });
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+    </script>
+</body>
+</html>
